@@ -15,6 +15,10 @@ requires 'Moose::Role';
 requires 'MRO::Compat';
 
 test_requires 'Test::More';
+test_requires 'Module::Find';
+
+resources repository =>
+'http://dev.catalyst.perl.org/repos/Catalyst/Catalyst-Plugin-RunAfterRequest/trunk/';
 
 WriteAll;
 
