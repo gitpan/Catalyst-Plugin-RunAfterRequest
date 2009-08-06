@@ -1,26 +1,34 @@
 package Catalyst::Plugin::RunAfterRequest;
 
-use strict;
-use warnings;
-use MRO::Compat;
+use Moose::Role;
+use MooseX::AttributeHelpers;
+use MooseX::Types::Moose qw/ArrayRef CodeRef/;
 
-our $VERSION = '0.02';
+use namespace::autoclean;
 
-sub run_after_request {
+our $VERSION = '0.03';
+
+has callbacks => (
+    metaclass => 'Collection::Array',
+    isa       => ArrayRef[CodeRef],
+    default   => sub { [] },
+    provides  => {
+        push => 'run_after_request',
+    },
+    curries   => {
+        map => {
+            _run_code_after_request => sub {
+                my ($self, $body) = @_;
+                $self->$body(sub { $self->$_ });
+            },
+        },
+    },
+);
+
+after finalize => sub {
     my $self = shift;
-    push( @{ $self->{run_after_request} ||= [] }, @_ );
-}
-
-sub finalize {
-    my $self = shift;
-    $self->next::method(@_);
     $self->_run_code_after_request;
-}
-
-sub _run_code_after_request {
-    my $self = shift;
-    $_->($self) for @{ $self->{run_after_request} || [] };
-}
+};
 
 =head1 NAME
 
