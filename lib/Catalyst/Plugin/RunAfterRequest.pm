@@ -1,34 +1,42 @@
 package Catalyst::Plugin::RunAfterRequest;
+BEGIN {
+  $Catalyst::Plugin::RunAfterRequest::AUTHORITY = 'cpan:FLORA';
+}
+BEGIN {
+  $Catalyst::Plugin::RunAfterRequest::VERSION = '0.04';
+}
+# ABSTRACT: run code after the response has been sent.
 
 use Moose::Role;
-use MooseX::AttributeHelpers;
 use MooseX::Types::Moose qw/ArrayRef CodeRef/;
 
 use namespace::autoclean;
 
-our $VERSION = '0.03';
-
 has callbacks => (
-    metaclass => 'Collection::Array',
-    isa       => ArrayRef[CodeRef],
-    default   => sub { [] },
-    provides  => {
-        push => 'run_after_request',
-    },
-    curries   => {
-        map => {
-            _run_code_after_request => sub {
-                my ($self, $body) = @_;
-                $self->$body(sub { $self->$_ });
-            },
-        },
+    traits  => ['Array'],
+    isa     => ArrayRef[CodeRef],
+    default => sub { [] },
+    handles => {
+        run_after_request => 'push',
+        _callbacks        => 'elements',
     },
 );
 
 after finalize => sub {
     my $self = shift;
-    $self->_run_code_after_request;
+
+    for my $callback ($self->_callbacks) {
+        $self->$callback;
+    }
 };
+
+
+1;
+
+__END__
+=pod
+
+=encoding utf-8
 
 =head1 NAME
 
@@ -72,7 +80,6 @@ Catalyst::Plugin::RunAfterRequest - run code after the response has been sent.
         );
     }
 
-
 =head1 DESCRIPTION
 
 Sometimes you want to run something after you've sent the reponse back to the
@@ -87,7 +94,7 @@ C<run_after_request> and adding a closure to it.
 =head2 run_after_request
 
     $c->run_after_request(            # '_run_after_request' in model
-        sub { 
+        sub {
             # create preview of uploaded file and store to remote server
             # etc, etc
         },
@@ -103,17 +110,34 @@ The method name has an underscore at the start in the model to indicate that it
 is a private method. Really you should only be calling this method from within
 the model and not from other code.
 
-=head1 AUTHOR
+=head1 AUTHORS
 
-Matt S Trout (mst) <mst@shadowcat.co.uk>
+=over 4
 
-Edmund von der Burg (evdb) <evdb@ecclestoad.co.uk>
+=item *
 
-=head1 LICENSE
+Matt S Trout <mst@shadowcat.co.uk>
 
-This library is free software, you can redistribute it and/or modify it under
-the same terms as Perl itself.
+=item *
+
+Edmund von der Burg <evdb@ecclestoad.co.uk>
+
+=item *
+
+Florian Ragwitz <rafl@debian.org>
+
+=item *
+
+Pedro Melo <melo@simplicidade.org>
+
+=back
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2010 by Matt S Trout.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
 
 =cut
 
-1;
